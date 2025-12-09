@@ -14,16 +14,485 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          detail: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          detail?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          detail?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      guru: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          mata_pelajaran: string | null
+          nip: string | null
+          profile_id: string | null
+          sekolah_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          mata_pelajaran?: string | null
+          nip?: string | null
+          profile_id?: string | null
+          sekolah_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          mata_pelajaran?: string | null
+          nip?: string | null
+          profile_id?: string | null
+          sekolah_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guru_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guru_sekolah_id_fkey"
+            columns: ["sekolah_id"]
+            isOneToOne: false
+            referencedRelation: "sekolah"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nilai: {
+        Row: {
+          catatan: string | null
+          created_at: string
+          id: string
+          nilai_portofolio: number | null
+          prestasi: string[] | null
+          rata_rata: number | null
+          semester_1: number | null
+          semester_2: number | null
+          semester_3: number | null
+          semester_4: number | null
+          semester_5: number | null
+          siswa_id: string
+          updated_at: string
+        }
+        Insert: {
+          catatan?: string | null
+          created_at?: string
+          id?: string
+          nilai_portofolio?: number | null
+          prestasi?: string[] | null
+          rata_rata?: number | null
+          semester_1?: number | null
+          semester_2?: number | null
+          semester_3?: number | null
+          semester_4?: number | null
+          semester_5?: number | null
+          siswa_id: string
+          updated_at?: string
+        }
+        Update: {
+          catatan?: string | null
+          created_at?: string
+          id?: string
+          nilai_portofolio?: number | null
+          prestasi?: string[] | null
+          rata_rata?: number | null
+          semester_1?: number | null
+          semester_2?: number | null
+          semester_3?: number | null
+          semester_4?: number | null
+          semester_5?: number | null
+          siswa_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nilai_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "siswa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prediksi: {
+        Row: {
+          catatan: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          persentase_kelulusan: number
+          prodi_rekomendasi_1: string | null
+          prodi_rekomendasi_2: string | null
+          ptn_rekomendasi_1: string | null
+          ptn_rekomendasi_2: string | null
+          siswa_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          catatan?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          persentase_kelulusan: number
+          prodi_rekomendasi_1?: string | null
+          prodi_rekomendasi_2?: string | null
+          ptn_rekomendasi_1?: string | null
+          ptn_rekomendasi_2?: string | null
+          siswa_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          catatan?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          persentase_kelulusan?: number
+          prodi_rekomendasi_1?: string | null
+          prodi_rekomendasi_2?: string | null
+          ptn_rekomendasi_1?: string | null
+          ptn_rekomendasi_2?: string | null
+          siswa_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediksi_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "siswa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      preprocessing_data: {
+        Row: {
+          created_at: string
+          data_cleaned: Json | null
+          data_normalized: Json | null
+          data_original: Json | null
+          data_transformed: Json | null
+          id: string
+          is_valid: boolean | null
+          preprocessing_log_id: string
+          siswa_id: string | null
+          validation_errors: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          data_cleaned?: Json | null
+          data_normalized?: Json | null
+          data_original?: Json | null
+          data_transformed?: Json | null
+          id?: string
+          is_valid?: boolean | null
+          preprocessing_log_id: string
+          siswa_id?: string | null
+          validation_errors?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          data_cleaned?: Json | null
+          data_normalized?: Json | null
+          data_original?: Json | null
+          data_transformed?: Json | null
+          id?: string
+          is_valid?: boolean | null
+          preprocessing_log_id?: string
+          siswa_id?: string | null
+          validation_errors?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preprocessing_data_preprocessing_log_id_fkey"
+            columns: ["preprocessing_log_id"]
+            isOneToOne: false
+            referencedRelation: "preprocessing_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preprocessing_data_siswa_id_fkey"
+            columns: ["siswa_id"]
+            isOneToOne: false
+            referencedRelation: "siswa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      preprocessing_log: {
+        Row: {
+          batch_id: string
+          completed_at: string | null
+          created_at: string
+          deskripsi: string | null
+          detail_proses: Json | null
+          error_message: string | null
+          id: string
+          jumlah_data_error: number | null
+          jumlah_data_input: number | null
+          jumlah_data_output: number | null
+          nama_tahap: string
+          started_at: string | null
+          statistik: Json | null
+          status: string | null
+          tahap: number
+        }
+        Insert: {
+          batch_id: string
+          completed_at?: string | null
+          created_at?: string
+          deskripsi?: string | null
+          detail_proses?: Json | null
+          error_message?: string | null
+          id?: string
+          jumlah_data_error?: number | null
+          jumlah_data_input?: number | null
+          jumlah_data_output?: number | null
+          nama_tahap: string
+          started_at?: string | null
+          statistik?: Json | null
+          status?: string | null
+          tahap: number
+        }
+        Update: {
+          batch_id?: string
+          completed_at?: string | null
+          created_at?: string
+          deskripsi?: string | null
+          detail_proses?: Json | null
+          error_message?: string | null
+          id?: string
+          jumlah_data_error?: number | null
+          jumlah_data_input?: number | null
+          jumlah_data_output?: number | null
+          nama_tahap?: string
+          started_at?: string | null
+          statistik?: Json | null
+          status?: string | null
+          tahap?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nama: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          nama: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nama?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sekolah: {
+        Row: {
+          akreditasi: string
+          alamat: string | null
+          created_at: string
+          id: string
+          kota: string | null
+          kuota_snbp: number | null
+          nama: string
+          npsn: string
+          provinsi: string | null
+          updated_at: string
+        }
+        Insert: {
+          akreditasi: string
+          alamat?: string | null
+          created_at?: string
+          id?: string
+          kota?: string | null
+          kuota_snbp?: number | null
+          nama: string
+          npsn: string
+          provinsi?: string | null
+          updated_at?: string
+        }
+        Update: {
+          akreditasi?: string
+          alamat?: string | null
+          created_at?: string
+          id?: string
+          kota?: string | null
+          kuota_snbp?: number | null
+          nama?: string
+          npsn?: string
+          provinsi?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      siswa: {
+        Row: {
+          created_at: string
+          guru_id: string | null
+          id: string
+          is_active: boolean | null
+          jurusan: string | null
+          kelas: string
+          nis: string | null
+          nisn: string
+          peringkat_kelas: number | null
+          peringkat_sekolah: number | null
+          profile_id: string | null
+          sekolah_id: string | null
+          tahun_masuk: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          guru_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          jurusan?: string | null
+          kelas: string
+          nis?: string | null
+          nisn: string
+          peringkat_kelas?: number | null
+          peringkat_sekolah?: number | null
+          profile_id?: string | null
+          sekolah_id?: string | null
+          tahun_masuk?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          guru_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          jurusan?: string | null
+          kelas?: string
+          nis?: string | null
+          nisn?: string
+          peringkat_kelas?: number | null
+          peringkat_sekolah?: number | null
+          profile_id?: string | null
+          sekolah_id?: string | null
+          tahun_masuk?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siswa_guru_id_fkey"
+            columns: ["guru_id"]
+            isOneToOne: false
+            referencedRelation: "guru"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siswa_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siswa_sekolah_id_fkey"
+            columns: ["sekolah_id"]
+            isOneToOne: false
+            referencedRelation: "sekolah"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "guru" | "siswa"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +619,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "guru", "siswa"],
+    },
   },
 } as const
