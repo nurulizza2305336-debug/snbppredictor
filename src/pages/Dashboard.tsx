@@ -4,6 +4,8 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDashboardStats, useSiswa, useNilai, usePrediksi, useSekolah, useGuru, useActivityLogs } from '@/hooks/useSupabaseData';
 import { mockStats, mockSiswa, mockPrediksi, mockNilai, chartData } from '@/data/mockData';
 import {
   Users,
@@ -15,6 +17,10 @@ import {
   Clock,
   AlertCircle,
   BookOpen,
+  Database,
+  Activity,
+  Building2,
+  Target,
 } from 'lucide-react';
 import {
   BarChart,
@@ -30,10 +36,49 @@ import {
   LineChart,
   Line,
   Legend,
+  AreaChart,
+  Area,
 } from 'recharts';
 import { Link } from 'react-router-dom';
 
 function AdminDashboard() {
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: siswaData, isLoading: siswaLoading } = useSiswa();
+  const { data: nilaiData } = useNilai();
+  const { data: prediksiData } = usePrediksi();
+  const { data: sekolahData } = useSekolah();
+  const { data: guruData } = useGuru();
+  const { data: activityLogs } = useActivityLogs();
+
+  // Calculate chart data from real data
+  const nilaiPerSemester = nilaiData && nilaiData.length > 0 ? [
+    { semester: 'Sem 1', nilai: nilaiData.reduce((sum, n) => sum + (n.semester_1 || 0), 0) / nilaiData.length },
+    { semester: 'Sem 2', nilai: nilaiData.reduce((sum, n) => sum + (n.semester_2 || 0), 0) / nilaiData.length },
+    { semester: 'Sem 3', nilai: nilaiData.reduce((sum, n) => sum + (n.semester_3 || 0), 0) / nilaiData.length },
+    { semester: 'Sem 4', nilai: nilaiData.reduce((sum, n) => sum + (n.semester_4 || 0), 0) / nilaiData.length },
+    { semester: 'Sem 5', nilai: nilaiData.reduce((sum, n) => sum + (n.semester_5 || 0), 0) / nilaiData.length },
+  ] : chartData.nilaiPerSemester;
+
+  const distribusiAkreditasi = sekolahData && sekolahData.length > 0 ? [
+    { name: 'Akreditasi A', value: sekolahData.filter(s => s.akreditasi === 'A').length, fill: 'hsl(var(--primary))' },
+    { name: 'Akreditasi B', value: sekolahData.filter(s => s.akreditasi === 'B').length, fill: 'hsl(var(--accent))' },
+    { name: 'Akreditasi C', value: sekolahData.filter(s => s.akreditasi === 'C').length, fill: 'hsl(var(--muted-foreground))' },
+  ] : chartData.distribusiAkreditasi;
+
+  const statusPrediksi = prediksiData && prediksiData.length > 0 ? [
+    { name: 'Published', value: prediksiData.filter(p => p.status === 'published').length, fill: 'hsl(var(--success))' },
+    { name: 'Processed', value: prediksiData.filter(p => p.status === 'processed').length, fill: 'hsl(var(--accent))' },
+    { name: 'Pending', value: prediksiData.filter(p => p.status === 'pending').length, fill: 'hsl(var(--muted-foreground))' },
+  ] : [];
+
+  const displayStats = stats || { 
+    totalSiswa: mockStats.totalSiswa, 
+    totalGuru: mockStats.totalGuru, 
+    rataRataNilai: mockStats.rataRataNilai, 
+    persentaseLolos: mockStats.persentaseLolos,
+    totalPrediksi: mockPrediksi.length
+  };
+
   return (
     <>
       <div className="mb-8">
@@ -42,35 +87,94 @@ function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard
-          title="Total Siswa"
-          value={mockStats.totalSiswa}
-          icon={Users}
-          trend={{ value: 12, isPositive: true }}
-          iconClassName="gradient-primary"
-        />
-        <StatCard
-          title="Rata-rata Nilai"
-          value={mockStats.rataRataNilai.toFixed(1)}
-          icon={BookOpen}
-          trend={{ value: 2.3, isPositive: true }}
-          iconClassName="bg-accent"
-        />
-        <StatCard
-          title="Prediksi Lolos"
-          value={`${mockStats.persentaseLolos}%`}
-          icon={TrendingUp}
-          trend={{ value: 5.2, isPositive: true }}
-          iconClassName="bg-success"
-        />
-        <StatCard
-          title="Total Guru"
-          value={mockStats.totalGuru}
-          icon={GraduationCap}
-          iconClassName="bg-warning"
-        />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5 mb-8">
+        {statsLoading ? (
+          [...Array(5)].map((_, i) => <Skeleton key={i} className="h-32" />)
+        ) : (
+          <>
+            <StatCard
+              title="Total Siswa"
+              value={displayStats.totalSiswa}
+              icon={Users}
+              trend={{ value: 12, isPositive: true }}
+              iconClassName="gradient-primary"
+            />
+            <StatCard
+              title="Total Guru"
+              value={displayStats.totalGuru}
+              icon={GraduationCap}
+              iconClassName="bg-warning"
+            />
+            <StatCard
+              title="Total Sekolah"
+              value={sekolahData?.length || 0}
+              icon={Building2}
+              iconClassName="bg-accent"
+            />
+            <StatCard
+              title="Total Prediksi"
+              value={displayStats.totalPrediksi}
+              icon={Target}
+              iconClassName="bg-secondary"
+            />
+            <StatCard
+              title="Prediksi Lolos"
+              value={`${displayStats.persentaseLolos}%`}
+              icon={TrendingUp}
+              trend={{ value: 5.2, isPositive: true }}
+              iconClassName="bg-success"
+            />
+          </>
+        )}
       </div>
+
+      {/* Quick Actions */}
+      <Card variant="elevated" className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Aksi Cepat Admin
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-4">
+          <Button variant="default" className="justify-start h-auto py-4" size="lg" asChild>
+            <Link to="/admin/tables">
+              <Database className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <p className="font-medium">Tabel Relasional</p>
+                <p className="text-xs opacity-70">Lihat semua tabel database</p>
+              </div>
+            </Link>
+          </Button>
+          <Button variant="outline" className="justify-start h-auto py-4" size="lg" asChild>
+            <Link to="/admin/preprocessing">
+              <Calculator className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <p className="font-medium">Preprocessing Detail</p>
+                <p className="text-xs opacity-70">Lihat proses per tahap</p>
+              </div>
+            </Link>
+          </Button>
+          <Button variant="outline" className="justify-start h-auto py-4" size="lg" asChild>
+            <Link to="/siswa">
+              <Users className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <p className="font-medium">Kelola Siswa</p>
+                <p className="text-xs opacity-70">Tambah/edit data siswa</p>
+              </div>
+            </Link>
+          </Button>
+          <Button variant="outline" className="justify-start h-auto py-4" size="lg" asChild>
+            <Link to="/guru">
+              <GraduationCap className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <p className="font-medium">Kelola Guru</p>
+                <p className="text-xs opacity-70">Kelola akun guru</p>
+              </div>
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2 mb-8">
@@ -83,10 +187,10 @@ function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData.nilaiPerSemester}>
+              <BarChart data={nilaiPerSemester}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="semester" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" domain={[70, 100]} />
+                <YAxis stroke="hsl(var(--muted-foreground))" domain={[0, 100]} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
@@ -111,7 +215,7 @@ function AdminDashboard() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={chartData.distribusiAkreditasi}
+                  data={distribusiAkreditasi}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -119,7 +223,7 @@ function AdminDashboard() {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {chartData.distribusiAkreditasi.map((entry, index) => (
+                  {distribusiAkreditasi.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                 </Pie>
@@ -137,46 +241,91 @@ function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Status Prediksi Chart */}
+      {statusPrediksi.length > 0 && (
+        <Card variant="elevated" className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Status Prediksi
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={statusPrediksi}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
+                >
+                  {statusPrediksi.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Recent Activity */}
       <Card variant="elevated">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Aktivitas Terbaru</CardTitle>
+          <CardTitle>Data Siswa Terbaru</CardTitle>
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/siswa">
+            <Link to="/admin/tables">
               Lihat Semua <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {mockSiswa.slice(0, 5).map((siswa) => {
-              const prediksi = mockPrediksi.find((p) => p.siswa_id === siswa.id);
-              return (
-                <div key={siswa.id} className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
-                      {siswa.nama.charAt(0)}
+          {siswaLoading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16" />)}
+            </div>
+          ) : siswaData && siswaData.length > 0 ? (
+            <div className="space-y-4">
+              {siswaData.slice(0, 5).map((siswa) => {
+                const prediksi = prediksiData?.find((p) => p.siswa_id === siswa.id);
+                return (
+                  <div key={siswa.id} className="flex items-center justify-between rounded-lg border border-border p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                        {siswa.profiles?.nama?.charAt(0) || siswa.nisn.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-semibold">{siswa.profiles?.nama || 'N/A'}</p>
+                        <p className="text-sm text-muted-foreground">{siswa.kelas} • NISN: {siswa.nisn}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold">{siswa.nama}</p>
-                      <p className="text-sm text-muted-foreground">{siswa.kelas} • NISN: {siswa.nisn}</p>
+                    <div className="text-right">
+                      {prediksi && (
+                        <Badge
+                          variant={prediksi.persentase_kelulusan >= 75 ? 'default' : prediksi.persentase_kelulusan >= 50 ? 'secondary' : 'destructive'}
+                          className="mb-1"
+                        >
+                          {prediksi.persentase_kelulusan}% Lolos
+                        </Badge>
+                      )}
+                      <p className="text-xs text-muted-foreground">Peringkat: #{siswa.peringkat_sekolah || '-'}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    {prediksi && (
-                      <Badge
-                        variant={prediksi.persentase_kelulusan >= 75 ? 'default' : prediksi.persentase_kelulusan >= 50 ? 'secondary' : 'destructive'}
-                        className="mb-1"
-                      >
-                        {prediksi.persentase_kelulusan}% Lolos
-                      </Badge>
-                    )}
-                    <p className="text-xs text-muted-foreground">Peringkat: {siswa.peringkat_sekolah}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>Belum ada data siswa</p>
+              <Button variant="outline" size="sm" className="mt-2" asChild>
+                <Link to="/siswa">Tambah Siswa</Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </>
@@ -417,7 +566,20 @@ function SiswaDashboard() {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-6 md:grid-cols-4">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32" />)}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

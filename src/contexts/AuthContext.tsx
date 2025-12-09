@@ -1,64 +1,176 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { User, UserRole } from '@/types';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { AppRole } from '@/lib/supabase-types';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: AppRole;
+}
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, nama: string, role: AppRole) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demo
-const mockUsers: Record<string, User & { password: string }> = {
-  'admin@snbp.id': {
-    id: '1',
-    name: 'Administrator',
-    email: 'admin@snbp.id',
-    role: 'admin',
-    password: 'admin123',
-  },
-  'guru@snbp.id': {
-    id: '2',
-    name: 'Budi Santoso, S.Pd',
-    email: 'guru@snbp.id',
-    role: 'guru',
-    password: 'guru123',
-  },
-  'siswa@snbp.id': {
-    id: '3',
-    name: 'Andi Pratama',
-    email: 'siswa@snbp.id',
-    role: 'siswa',
-    password: 'siswa123',
-  },
-};
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('snbp_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    const mockUser = mockUsers[email];
-    if (mockUser && mockUser.password === password) {
-      const { password: _, ...userData } = mockUser;
-      setUser(userData);
-      localStorage.setItem('snbp_user', JSON.stringify(userData));
-      return true;
+  const fetchUserRole = async (userId: string): Promise<AppRole | null> => {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error || !data) return null;
+    return data.role as AppRole;
+  };
+
+  const fetchUserProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error) return null;
+    return data;
+  };
+
+  const setupUser = async (supabaseUser: SupabaseUser) => {
+    const [role, profile] = await Promise.all([
+      fetchUserRole(supabaseUser.id),
+      fetchUserProfile(supabaseUser.id)
+    ]);
+
+    if (role && profile) {
+      setUser({
+        id: supabaseUser.id,
+        name: profile.nama || supabaseUser.email || '',
+        email: supabaseUser.email || '',
+        role: role,
+      });
     }
-    return false;
+  };
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Use setTimeout to avoid blocking the auth state change
+          setTimeout(() => setupUser(session.user), 0);
+        } else {
+          setUser(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        setupUser(session.user);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const logout = useCallback(() => {
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        await setupUser(data.user);
+        return { success: true };
+      }
+
+      return { success: false, error: 'Login gagal' };
+    } catch (err) {
+      return { success: false, error: 'Terjadi kesalahan saat login' };
+    }
+  }, []);
+
+  const signup = useCallback(async (
+    email: string, 
+    password: string, 
+    nama: string, 
+    role: AppRole
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { nama }
+        }
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        // Add role to user_roles table
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: data.user.id, role });
+
+        if (roleError) {
+          console.error('Error adding role:', roleError);
+        }
+
+        await setupUser(data.user);
+        return { success: true };
+      }
+
+      return { success: false, error: 'Registrasi gagal' };
+    } catch (err) {
+      return { success: false, error: 'Terjadi kesalahan saat registrasi' };
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('snbp_user');
+    setSession(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      isAuthenticated: !!user, 
+      isLoading, 
+      login, 
+      signup, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );
